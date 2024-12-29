@@ -1,95 +1,86 @@
 /*** APP ***/
-import React, { useState } from "react";
+import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { createRoot } from "react-dom/client";
 import {
   ApolloClient,
   ApolloProvider,
-  InMemoryCache,
   gql,
   useQuery,
-  useMutation,
 } from "@apollo/client";
 
+import cache from './cache.js';
 import { link } from "./link.js";
 import { Subscriptions } from "./subscriptions.jsx";
 import { Layout } from "./layout.jsx";
 import "./index.css";
 
-const ALL_PEOPLE = gql`
-  query AllPeople {
-    people {
+const CONVERSATION = gql`
+  query GetConversation($id: ID!, $start: Int!, $end: Int!) {
+    conversation(id: $id) {
       id
-      name
+      messages(startIndex: $start, endIndex: $end) {
+        id
+        author {
+          id
+          name
+        }
+        body
+        conversation {
+          # !!! including this recursive id causes readField('id', message) to return null in merge callback !!!
+          id 
+        }
+      }
     }
   }
-`;
-
-const ADD_PERSON = gql`
-  mutation AddPerson($name: String) {
-    addPerson(name: $name) {
-      id
-      name
-    }
-  }
-`;
+`
 
 function App() {
-  const [name, setName] = useState("");
-  const { loading, data } = useQuery(ALL_PEOPLE);
+  // const [start, setStart] = useState(0);
+  // const [end, setEnd] = useState(2);
+  const conversationQuery = useQuery(CONVERSATION, { variables: { id: 'c-1', start: 0 , end: 2 }})
 
-  const [addPerson] = useMutation(ADD_PERSON, {
-    update: (cache, { data: { addPerson: addPersonData } }) => {
-      const peopleResult = cache.readQuery({ query: ALL_PEOPLE });
-
-      cache.writeQuery({
-        query: ALL_PEOPLE,
-        data: {
-          ...peopleResult,
-          people: [...peopleResult.people, addPersonData],
-        },
-      });
-    },
-  });
-
+ 
   return (
     <main>
       <h3>Home</h3>
-      <div className="add-person">
-        <label htmlFor="name">Name</label>
+      <h2>Conversation</h2>
+      {/* <input
+          type="text"
+          name="startIndex"
+          value={start}
+          onChange={(evt) => setStart(Number(evt.target.value))}
+        />
         <input
           type="text"
-          name="name"
-          value={name}
-          onChange={(evt) => setName(evt.target.value)}
+          name="endIndex"
+          value={end}
+          onChange={(evt) => setEnd(Number(evt.target.value))}
         />
         <button
           onClick={() => {
-            addPerson({ variables: { name } });
-            setName("");
+            conversationQuery.fetchMore({ variables: { start, end }})
           }}
         >
-          Add person
-        </button>
-      </div>
-      <h2>Names</h2>
-      {loading ? (
-        <p>Loading…</p>
-      ) : (
-        <ul>
-          {data?.people.map((person) => (
-            <li key={person.id}>{person.name}</li>
-          ))}
-        </ul>
-      )}
+        Load page
+        </button> */}
+      {
+        conversationQuery.loading ? (<p>Loading...</p>) :
+        (
+          <ul>
+            {
+              conversationQuery.data?.conversation?.messages.map(
+              (m) => (<li key={m.id}>{`[${m.id}] ${m.author.name}: ${m.body}`}</li>))
+            }
+          </ul>
+        )
+      }
     </main>
   );
 }
 
-const client = new ApolloClient({
-  cache: new InMemoryCache(),
-  link,
-});
+
+const client = new ApolloClient({ cache, link });
 
 const container = document.getElementById("root");
 const root = createRoot(container);
@@ -106,3 +97,4 @@ root.render(
     </Router>
   </ApolloProvider>
 );
+
