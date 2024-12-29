@@ -1,5 +1,4 @@
 /*** APP ***/
-import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { createRoot } from "react-dom/client";
 import {
@@ -36,34 +35,12 @@ const CONVERSATION = gql`
 `
 
 function App() {
-  // const [start, setStart] = useState(0);
-  // const [end, setEnd] = useState(2);
   const conversationQuery = useQuery(CONVERSATION, { variables: { id: 'c-1', start: 0 , end: 2 }})
-
  
   return (
     <main>
       <h3>Home</h3>
       <h2>Conversation</h2>
-      {/* <input
-          type="text"
-          name="startIndex"
-          value={start}
-          onChange={(evt) => setStart(Number(evt.target.value))}
-        />
-        <input
-          type="text"
-          name="endIndex"
-          value={end}
-          onChange={(evt) => setEnd(Number(evt.target.value))}
-        />
-        <button
-          onClick={() => {
-            conversationQuery.fetchMore({ variables: { start, end }})
-          }}
-        >
-        Load page
-        </button> */}
       {
         conversationQuery.loading ? (<p>Loading...</p>) :
         (
